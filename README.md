@@ -1,5 +1,5 @@
 # 🔥 FHIR Store
-> A containerized HAPI FHIR server with PostgreSQL backend
+> A containerized HAPI FHIR server
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
 [![HAPI FHIR](https://img.shields.io/badge/HAPI%20FHIR-Latest-green?logo=fire)](https://hapifhir.io/)
@@ -50,24 +50,15 @@ docker-compose ps
 - **User**: `fhir_app` (application user)
 - **Schema**: `fhir_data` (dedicated FHIR schema)
 - **Admin**: `admin` (database administration)
-- **Auto-initialization**: Creates schema and user on first run
+
+The user and schema is initialised on startup.
 
 ### FHIR Configuration
 Custom application settings in `hapi.application.yaml`:
 - PostgreSQL dialect optimized for HAPI
 - Hibernate search disabled for performance
 - Connection pooling ready
-
-## 📂 Project Structure
-
-```
-fhirstore/
-├── 📄 docker-compose.yml      # Container orchestration
-├── ⚙️  hapi.application.yaml  # HAPI FHIR configuration
-├── 🗄️  init-postgres.sql     # Database initialization
-├── 📁 hapi.postgress.data/   # PostgreSQL data (auto-created)
-└── 📖 README.md              # You are here!
-```
+=
 
 ## 🔧 Commands
 
@@ -154,12 +145,6 @@ curl "http://localhost:8080/fhir/Patient?family=Doe"
 docker-compose up --scale fhir=3
 ```
 
-### Production Considerations
-- Add load balancer (nginx/HAProxy)
-- Configure connection pooling
-- Set up monitoring (Prometheus/Grafana)
-- Implement backup strategy
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -171,13 +156,5 @@ docker-compose up --scale fhir=3
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙋‍♂️ Support
-
-- 📖 [HAPI FHIR Documentation](https://hapifhir.io/hapi-fhir/)
-- 🐳 [Docker Compose Guide](https://docs.docker.com/compose/)
-- 🗄️ [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-
----
 
 **Made with ❤️ for the FHIR community**
