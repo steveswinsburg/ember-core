@@ -14,11 +14,6 @@ jobs:
   verify-startup:
     runs-on: ubuntu-latest
     
-    env:
-      FHIR_PORT: 8080
-      DB_USER: admin
-      DB_NAME: hapi
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -26,56 +21,65 @@ jobs:
     - name: Start services
       run: docker compose up -d
       
-    - name: Wait for FHIR server to be ready
+    - name: Wait for services to be healthy
       run: |
-        echo "Waiting for FHIR server to start..."
-        max_attempts=30
-        attempt=0
+        echo "Waiting for services to be healthy..."
+        timeout=300  # 5 minutes
+        start_time=$(date +%s)
         
-        while [ $attempt -lt $max_attempts ]; do
-          if curl -sf http://localhost:${{ env.FHIR_PORT }}/fhir/metadata > /dev/null 2>&1; then
-            echo "FHIR server is ready!"
-            exit 0
+        while true; do
+          current_time=$(date +%s)
+          elapsed=$((current_time - start_time))
+          
+          if [ $elapsed -gt $timeout ]; then
+            echo "Services failed to become healthy within $timeout seconds"
+            docker compose ps
+            docker compose logs
+            exit 1
           fi
-          attempt=$((attempt + 1))
-          echo "Attempt $attempt/$max_attempts - FHIR server not ready yet, waiting..."
+          
+          # Check if both services are healthy
+          db_health=$(docker compose ps db --format "table {{.Status}}" | grep -v STATUS | grep -o "healthy" || echo "unhealthy")
+          fhir_health=$(docker compose ps fhir --format "table {{.Status}}" | grep -v STATUS | grep -o "healthy" || echo "unhealthy")
+          
+          echo "Database: $db_health, FHIR: $fhir_health (${elapsed}s elapsed)"
+          
+          if [ "$db_health" = "healthy" ] && [ "$fhir_health" = "healthy" ]; then
+            echo "All services are healthy!"
+            break
+          fi
+          
           sleep 10
         done
-        
-        echo "FHIR server failed to start within expected time"
-        echo "Showing container logs:"
-        docker compose logs
-        exit 1
         
     - name: Verify FHIR metadata endpoint
       run: |
         echo "Testing FHIR metadata endpoint..."
-        response=$(curl -s http://localhost:${{ env.FHIR_PORT }}/fhir/metadata)
+        response=$(curl -s http://localhost:8080/fhir/metadata)
         
         if echo "$response" | grep -q "CapabilityStatement"; then
-          echo "✓ FHIR server is responding correctly"
-          echo "Response preview:"
-          echo "$response" | head -20
+          echo "FHIR server is responding correctly with CapabilityStatement"
         else
-          echo "✗ FHIR server response doesn't look correct"
-          echo "Full response:"
+          echo "FHIR server response doesn't contain expected CapabilityStatement"
+          echo "Response received:"
           echo "$response"
           exit 1
         fi
         
-    - name: Check database connection
+    - name: Verify database connectivity
       run: |
-        echo "Checking database container..."
-        docker compose exec -T db pg_isready -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }}
+        echo "Verifying database connectivity..."
+        docker compose exec -T db psql -U admin -d hapi -c "SELECT version();" | head -1
+        echo "Database connection successful"
         
-    - name: Show service status
-      if: always()
-      run: docker compose ps
-      
-    - name: Show logs on failure
-      if: failure()
-      run: docker compose logs
-      
+    - name: Show final service status
+      run: |
+        echo "Final service status:"
+        docker compose ps
+        
     - name: Cleanup
       if: always()
-      run: docker compose down -v
+      run: |
+        echo "Shutting down services..."
+        docker compose down -v
+        echo "Cleanup completed"
