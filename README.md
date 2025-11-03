@@ -113,6 +113,18 @@ curl -X POST http://localhost:8080/fhir/Patient \
   }'
 ```
 
+### Create a Patient (with ID)
+```bash
+curl -X PUT http://localhost:8080/fhir/Patient/abc1234 \
+  -H "Content-Type: application/fhir+json" \
+  -d '{
+    "resourceType": "Patient",
+    "id": "abc1234",
+    "name": [{"family": "Doe", "given": ["John"]}],
+    "gender": "male"
+  }'
+```
+
 ### Search Patients
 ```bash
 curl "http://localhost:8080/fhir/Patient?family=Doe"
