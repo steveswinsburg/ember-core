@@ -17,6 +17,7 @@ services:
       start_period: 60s
 
   db:
+    container_name: fhirstore-db
     image: postgres:13
     restart: always
     environment:
